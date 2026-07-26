@@ -1,7 +1,7 @@
 export default function Navbar() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/30 backdrop-blur-xl">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/10">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8">
 
         <div>
           <h1 className="text-xl font-bold text-white">
