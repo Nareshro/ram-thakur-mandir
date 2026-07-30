@@ -1,4 +1,37 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/app/lib/firebase";
+
+interface GuruData {
+  name: string;
+  subtitle: string;
+  description1: string;
+  description2: string;
+  description3: string;
+  image: string;
+}
+
 export default function Guru() {
+  const [guru, setGuru] = useState<GuruData | null>(null);
+
+  useEffect(() => {
+    const loadGuru = async () => {
+      try {
+        const snap = await getDoc(doc(db, "guru", "main"));
+
+        if (snap.exists()) {
+          setGuru(snap.data() as GuruData);
+        }
+      } catch (error) {
+        console.error("Failed to load guru:", error);
+      }
+    };
+
+    loadGuru();
+  }, []);
+
   return (
     <section
       id="guru"
@@ -12,10 +45,10 @@ export default function Guru() {
 
           <div className="flex justify-center">
 
-           <img
-            src="/images/gallery/guruji.jpg.jpeg"
-            alt="Guru Ji"
-            className="w-full max-w-lg rounded-3xl shadow-2xl object-cover"
+            <img
+              src={guru?.image || "/images/gallery/guruji.jpg.jpeg"}
+              alt={guru?.name || "Guru Ji"}
+              className="w-full max-w-lg rounded-3xl shadow-2xl object-cover"
             />
 
           </div>
@@ -29,31 +62,27 @@ export default function Guru() {
             </h4>
 
             <h2 className="mb-6 text-5xl font-bold text-stone-900">
-              Sri Sri Ram Thakur
+              {guru?.name || "Sri Sri Ram Thakur"}
             </h2>
 
             <p className="mb-6 text-xl italic text-amber-700">
-              "Love All • Serve All • Remember the Holy Name"
+              {guru?.subtitle ||
+                "Love All • Serve All • Remember the Holy Name"}
             </p>
 
             <p className="mb-6 text-lg leading-8 text-gray-700">
-              Sri Sri Ram Thakur (Ram Chandra Dev) was born on
-              2 February 1860 at Dingamanik, Faridpur
-              (present-day Bangladesh).
+              {guru?.description1 ||
+                "Sri Sri Ram Thakur (Ram Chandra Dev) was born on 2 February 1860 at Dingamanik, Faridpur (present-day Bangladesh)."}
             </p>
 
             <p className="mb-6 text-lg leading-8 text-gray-700">
-              Revered as Sri Sri Kaibalyanath and lovingly known
-              as Dayal Thakur, he welcomed people from every
-              caste, creed and religion with unconditional love,
-              compassion and service.
+              {guru?.description2 ||
+                "Revered as Sri Sri Kaibalyanath and lovingly known as Dayal Thakur, he welcomed people from every caste, creed and religion with unconditional love, compassion and service."}
             </p>
 
             <p className="mb-10 text-lg leading-8 text-gray-700">
-              His timeless teachings continue to inspire
-              millions of devotees through satsang,
-              devotion, selfless service and remembrance
-              of the Holy Name.
+              {guru?.description3 ||
+                "His timeless teachings continue to inspire millions of devotees through satsang, devotion, selfless service and remembrance of the Holy Name."}
             </p>
 
             <button className="rounded-full bg-amber-500 px-8 py-4 text-white transition hover:bg-amber-600">
