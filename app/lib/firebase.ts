@@ -5,12 +5,12 @@ import { getStorage } from "firebase/storage";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBqTgeX45Pvq8nT6JaS1eWbX3V8adBvl_g",
-  authDomain: "ram-thakur-mandir.firebaseapp.com",
-  projectId: "ram-thakur-mandir",
-  storageBucket: "ram-thakur-mandir.firebasestorage.app",
-  messagingSenderId: "811432812018",
-  appId: "1:811432812018:web:36986304bb400e28955f6b",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
 const app =
