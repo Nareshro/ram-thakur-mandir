@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -16,14 +15,22 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const [logoError, setLogoError] = useState(false);
+
+  const handleLogin = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
     setLoading(true);
     setError("");
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
       router.push("/admin/dashboard");
     } catch (error: unknown) {
@@ -34,7 +41,11 @@ export default function LoginPage() {
         error !== null &&
         "code" in error
       ) {
-        setError(String((error as { code: string }).code));
+        setError(
+          String(
+            (error as { code: string }).code
+          )
+        );
       } else {
         setError("Login failed");
       }
@@ -44,16 +55,28 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-stone-900 to-black flex items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl bg-white/10 backdrop-blur-xl border border-white/10 p-10 shadow-2xl">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-black via-stone-900 to-black px-6">
+
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-10 shadow-2xl backdrop-blur-xl">
+
+        {/* Logo / Temple Icon */}
+
         <div className="text-center">
-          <Image
-            src="/images/logo/logo.jpg.jpeg"
-            alt="Temple Logo"
-            width={90}
-            height={90}
-            className="mx-auto rounded-full border-2 border-amber-400"
-          />
+
+          {!logoError ? (
+            <img
+              src="/images/logo/logo.jpg.jpeg"
+              alt="Shri Shri Ram Thakur Seva Mandir"
+              className="mx-auto h-[90px] w-[90px] rounded-full border-2 border-amber-400 object-cover"
+              onError={() => {
+                setLogoError(true);
+              }}
+            />
+          ) : (
+            <div className="mx-auto flex h-[90px] w-[90px] items-center justify-center rounded-full border-2 border-amber-400 bg-stone-800 text-3xl font-bold text-amber-400">
+              RT
+            </div>
+          )}
 
           <h1 className="mt-6 text-3xl font-bold text-white">
             Admin Portal
@@ -62,10 +85,20 @@ export default function LoginPage() {
           <p className="mt-2 text-amber-400">
             Shri Shri Ram Thakur Seva Mandir
           </p>
+
         </div>
 
-        <form onSubmit={handleLogin} className="mt-10 space-y-6">
+        {/* Login Form */}
+
+        <form
+          onSubmit={handleLogin}
+          className="mt-10 space-y-6"
+        >
+
+          {/* Email */}
+
           <div>
+
             <label className="text-sm text-gray-300">
               Email
             </label>
@@ -74,13 +107,19 @@ export default function LoginPage() {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
               placeholder="Enter your email"
-              className="mt-2 w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white outline-none focus:border-amber-400"
+              className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white outline-none focus:border-amber-400"
             />
+
           </div>
 
+          {/* Password */}
+
           <div>
+
             <label className="text-sm text-gray-300">
               Password
             </label>
@@ -89,33 +128,46 @@ export default function LoginPage() {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
               placeholder="Enter your password"
-              className="mt-2 w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white outline-none focus:border-amber-400"
+              className="mt-2 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white outline-none focus:border-amber-400"
             />
+
           </div>
 
+          {/* Error */}
+
           {error && (
-            <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
               <p className="text-center text-sm text-red-400">
                 {error}
               </p>
             </div>
           )}
 
+          {/* Login */}
+
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
           >
-            {loading ? "Signing In..." : "Login"}
+            {loading
+              ? "Signing In..."
+              : "Login"}
           </button>
+
         </form>
 
+        {/* Footer */}
+
         <div className="mt-8 text-center">
+
           <Link
             href="/"
-            className="text-gray-400 hover:text-amber-400"
+            className="text-gray-400 transition hover:text-amber-400"
           >
             ← Back to Website
           </Link>
@@ -123,8 +175,11 @@ export default function LoginPage() {
           <p className="mt-6 font-medium text-amber-400">
             Guru Kripahi Kevalam
           </p>
+
         </div>
+
       </div>
+
     </main>
   );
 }

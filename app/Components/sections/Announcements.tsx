@@ -6,7 +6,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "@/app/lib/firebase";
 import { Megaphone } from "lucide-react";
@@ -20,7 +19,8 @@ interface Announcement {
 }
 
 export default function Announcements() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] =
+    useState<Announcement[]>([]);
 
   useEffect(() => {
     loadAnnouncements();
@@ -30,49 +30,74 @@ export default function Announcements() {
     try {
       const q = query(
         collection(db, "announcements"),
-        where("active", "==", true),
-        orderBy("date", "desc")
+        where("active", "==", true)
       );
 
       const snapshot = await getDocs(q);
 
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Announcement, "id">),
+      const data = snapshot.docs.map((item) => ({
+        id: item.id,
+        ...(item.data() as Omit<Announcement, "id">),
       }));
 
+      data.sort((a, b) =>
+        b.date.localeCompare(a.date)
+      );
+
       setAnnouncements(data);
+
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to load announcements:",
+        error
+      );
     }
   }
 
-  if (announcements.length === 0) return null;
+  if (announcements.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="py-20 bg-amber-50">
+    <section
+      id="announcements"
+      className="py-20 bg-amber-50"
+    >
+
       <div className="max-w-6xl mx-auto px-6">
 
+        {/* Heading */}
+
         <div className="text-center mb-12">
+
           <h2 className="text-4xl font-bold text-stone-800">
             Temple Announcements
           </h2>
 
           <p className="text-gray-600 mt-4">
-            Stay updated with the latest temple activities and notices.
+            Stay updated with the latest temple
+            activities and notices.
           </p>
+
         </div>
+
+        {/* Announcements */}
 
         <div className="space-y-6">
 
           {announcements.map((item) => (
+
             <div
               key={item.id}
               className="bg-white rounded-xl shadow-md p-6 border-l-4 border-amber-500"
             >
+
               <div className="flex items-start gap-4">
 
-                <Megaphone className="text-amber-600 mt-1" size={24} />
+                <Megaphone
+                  className="text-amber-600 mt-1 shrink-0"
+                  size={24}
+                />
 
                 <div className="flex-1">
 
@@ -95,12 +120,15 @@ export default function Announcements() {
                 </div>
 
               </div>
+
             </div>
+
           ))}
 
         </div>
 
       </div>
+
     </section>
   );
 }

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/app/lib/firebase";
+import { uploadImage } from "@/app/lib/storageService";
 import toast from "react-hot-toast";
-
 
 interface HomepageForm {
   templeName: string;
@@ -26,43 +26,56 @@ interface HomepageForm {
   address: string;
   phone: string;
   email: string;
+  mapUrl: string;
 
   facebook: string;
   instagram: string;
   youtube: string;
 }
 
+const emptyForm: HomepageForm = {
+  templeName: "",
+  heroTitle: "",
+  subtitle: "",
+  heroDescription: "",
+
+  aboutTitle: "",
+  aboutHeading: "",
+  about: "",
+  mission: "",
+
+  dailyAarti: "",
+  devotees: "",
+  peaceService: "",
+
+  heroImage: "",
+
+  address: "",
+  phone: "",
+  email: "",
+  mapUrl: "",
+
+  facebook: "",
+  instagram: "",
+  youtube: "",
+};
+
 export default function HomepagePage() {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] =
+    useState(true);
+
+  const [form, setForm] =
+    useState<HomepageForm>(emptyForm);
+
+  const [selectedHeroFile, setSelectedHeroFile] =
+    useState<File | null>(null);
+
+  const [heroPreview, setHeroPreview] =
+    useState("");
 
   const inputClass =
     "mt-2 w-full rounded-xl border border-gray-300 bg-white p-3 text-gray-900 placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500";
-
-  const [form, setForm] = useState<HomepageForm>({
-    templeName: "",
-    heroTitle: "",
-    subtitle: "",
-    heroDescription: "",
-
-    aboutTitle: "",
-    aboutHeading: "",
-    about: "",
-    mission: "",
-
-    dailyAarti: "",
-    devotees: "",
-    peaceService: "",
-
-    heroImage: "",
-
-    address: "",
-    phone: "",
-    email: "",
-
-    facebook: "",
-    instagram: "",
-    youtube: "",
-  });
 
   useEffect(() => {
     loadHomepage();
@@ -70,382 +83,639 @@ export default function HomepagePage() {
 
   async function loadHomepage() {
     try {
-      const snap = await getDoc(doc(db, "homepage", "main"));
+      setInitialLoading(true);
+
+      const snap = await getDoc(
+        doc(db, "homepage", "main")
+      );
 
       if (snap.exists()) {
-        setForm((prev) => ({
-          ...prev,
-          ...(snap.data() as HomepageForm),
-        }));
+        const data =
+          snap.data() as Partial<HomepageForm>;
+
+        const loadedForm: HomepageForm = {
+          ...emptyForm,
+          ...data,
+        };
+
+        setForm(loadedForm);
+
+        setHeroPreview(
+          loadedForm.heroImage || ""
+        );
       }
     } catch (error) {
       console.error(error);
+
+      toast.error(
+        "Failed to load homepage"
+      );
+    } finally {
+      setInitialLoading(false);
     }
   }
 
-  async function saveHomepage() {
-  try {
-    setLoading(true);
+  function handleHeroFileChange(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
 
-    await setDoc(doc(db, "homepage", "main"), form);
+    if (!file) {
+      return;
+    }
 
-    toast.success("Homepage updated successfully!");
-  } catch (error) {
-    console.error(error);
+    if (!file.type.startsWith("image/")) {
+      toast.error(
+        "Please select a valid image."
+      );
+      return;
+    }
 
-    toast.error("Failed to save homepage.");
-  } finally {
-    setLoading(false);
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(
+        "Hero image must be less than 5 MB."
+      );
+      return;
+    }
+
+    setSelectedHeroFile(file);
+
+    const objectUrl =
+      URL.createObjectURL(file);
+
+    setHeroPreview(objectUrl);
   }
-}
 
-  return ( 
-    <div className="max-w-6xl mx-auto p-8 space-y-8">
+  async function saveHomepage() {
+    try {
+      setLoading(true);
 
-  {/* Header */}
-  <div>
-    <h1 className="text-3xl font-bold text-gray-800">
-      Homepage Management
-    </h1>
+      let heroImageUrl =
+        form.heroImage;
 
-    <p className="mt-2 text-gray-600">
-      Manage your homepage content.
-    </p>
-  </div>
+      /*
+       * Upload a new hero image only when
+       * the administrator selects one.
+       */
+      if (selectedHeroFile) {
+        console.log(
+          "Starting homepage hero upload:",
+          selectedHeroFile.name
+        );
 
-  {/* Hero Section */}
-  <div className="rounded-2xl border bg-white shadow-lg p-8 space-y-6">
+        heroImageUrl =
+          await uploadImage(
+            selectedHeroFile,
+            "homepage"
+          );
 
-    <h2 className="text-2xl font-bold text-amber-600 border-b pb-3">
-      Hero Section
-    </h2>
+        console.log(
+          "Homepage hero uploaded:",
+          heroImageUrl
+        );
+      }
 
-    <div>
-      <label className="block font-medium text-gray-700">
-        Temple Name
-      </label>
+      const updatedForm: HomepageForm = {
+        ...form,
+        heroImage: heroImageUrl,
+      };
 
-      <input
-        className={inputClass}
-        value={form.templeName}
-        onChange={(e)=>
-          setForm({...form,templeName:e.target.value})
-        }
-      />
-    </div>
+      await setDoc(
+        doc(db, "homepage", "main"),
+        updatedForm,
+        { merge: true }
+      );
 
-    <div>
-      <label className="block font-medium text-gray-700">
-        Hero Title
-      </label>
+      setForm(updatedForm);
 
-      <input
-        className={inputClass}
-        value={form.heroTitle}
-        onChange={(e)=>
-          setForm({...form,heroTitle:e.target.value})
-        }
-      />
-    </div>
+      setHeroPreview(
+        heroImageUrl || ""
+      );
 
-    <div>
-      <label className="block font-medium text-gray-700">
-        Subtitle
-      </label>
+      setSelectedHeroFile(null);
 
-      <input
-        className={inputClass}
-        value={form.subtitle}
-        onChange={(e)=>
-          setForm({...form,subtitle:e.target.value})
-        }
-      />
-    </div>
+      toast.success(
+        "Homepage updated successfully!"
+      );
+    } catch (error) {
+      console.error(
+        "Failed to save homepage:",
+        error
+      );
 
-    <div>
-      <label className="block font-medium text-gray-700">
-        Hero Description
-      </label>
+      toast.error(
+        "Failed to save homepage."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      <textarea
-        rows={4}
-        className={inputClass}
-        value={form.heroDescription}
-        onChange={(e)=>
-          setForm({...form,heroDescription:e.target.value})
-        }
-      />
-    </div>
+  if (initialLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center text-gray-500">
+        Loading homepage...
+      </div>
+    );
+  }
 
-    <div>
-      <label className="block font-medium text-gray-700">
-        Hero Image Path
-      </label>
+  return (
+    <div className="mx-auto max-w-6xl space-y-8 p-8">
 
-      <input
-        className={inputClass}
-        placeholder="/images/hero/banner.jpg"
-        value={form.heroImage}
-        onChange={(e)=>
-          setForm({...form,heroImage:e.target.value})
-        }
-      />
-    </div>
-
-  </div>
-
-  {/* About Section */}
-
-  <div className="rounded-2xl border bg-white shadow-lg p-8 space-y-6">
-
-    <h2 className="text-2xl font-bold text-amber-600 border-b pb-3">
-      About Section
-    </h2>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        About Title
-      </label>
-
-      <input
-        className={inputClass}
-        value={form.aboutTitle}
-        onChange={(e)=>
-          setForm({...form,aboutTitle:e.target.value})
-        }
-      />
-    </div>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        About Heading
-      </label>
-
-      <input
-        className={inputClass}
-        value={form.aboutHeading}
-        onChange={(e)=>
-          setForm({...form,aboutHeading:e.target.value})
-        }
-      />
-    </div>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        About Description
-      </label>
-
-      <textarea
-        rows={5}
-        className={inputClass}
-        value={form.about}
-        onChange={(e)=>
-          setForm({...form,about:e.target.value})
-        }
-      />
-    </div>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        Mission
-      </label>
-
-      <textarea
-        rows={4}
-        className={inputClass}
-        value={form.mission}
-        onChange={(e)=>
-          setForm({...form,mission:e.target.value})
-        }
-      />
-    </div>
-
-    <div className="grid md:grid-cols-3 gap-6">
+      {/* Header */}
 
       <div>
-        <label className="block font-medium text-gray-700">
-          Daily Aarti
-        </label>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Homepage Management
+        </h1>
 
-        <input
-          className={inputClass}
-          value={form.dailyAarti}
-          onChange={(e)=>
-            setForm({...form,dailyAarti:e.target.value})
-          }
-        />
+        <p className="mt-2 text-gray-600">
+          Manage your homepage content.
+        </p>
       </div>
 
-      <div>
-        <label className="block font-medium text-gray-700">
-          Devotees
-        </label>
+      {/* HERO */}
 
-        <input
-          className={inputClass}
-          value={form.devotees}
-          onChange={(e)=>
-            setForm({...form,devotees:e.target.value})
-          }
-        />
+      <div className="space-y-6 rounded-2xl border bg-white p-8 shadow-lg">
+
+        <h2 className="border-b pb-3 text-2xl font-bold text-amber-600">
+          Hero Section
+        </h2>
+
+        {/* Temple Name */}
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Temple Name
+          </label>
+
+          <input
+            className={inputClass}
+            value={form.templeName}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                templeName:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        {/* Hero Title */}
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Hero Title
+          </label>
+
+          <input
+            className={inputClass}
+            value={form.heroTitle}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                heroTitle:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        {/* Subtitle */}
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Subtitle
+          </label>
+
+          <input
+            className={inputClass}
+            value={form.subtitle}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                subtitle:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        {/* Hero Description */}
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Hero Description
+          </label>
+
+          <textarea
+            rows={4}
+            className={inputClass}
+            value={form.heroDescription}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                heroDescription:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        {/* Hero Image */}
+
+        <div>
+
+          <label className="block font-medium text-gray-700">
+            Hero Image
+          </label>
+
+          <div className="mt-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-5">
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={
+                handleHeroFileChange
+              }
+              disabled={loading}
+              className="w-full text-gray-700 file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-amber-500 file:px-5 file:py-2 file:text-white hover:file:bg-amber-600 disabled:opacity-50"
+            />
+
+            <p className="mt-2 text-sm text-gray-500">
+              JPG, PNG or WEBP. Maximum
+              size: 5 MB.
+            </p>
+
+            {selectedHeroFile && (
+              <p className="mt-3 text-sm font-medium text-green-600">
+                Selected:{" "}
+                {selectedHeroFile.name}
+              </p>
+            )}
+
+          </div>
+
+          {/* Preview */}
+
+          {heroPreview && (
+            <div className="mt-5">
+
+              <p className="mb-3 font-medium text-gray-700">
+                Hero Image Preview
+              </p>
+
+              <img
+                src={heroPreview}
+                alt="Homepage hero preview"
+                className="h-64 w-full max-w-3xl rounded-xl border object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display =
+                    "none";
+                }}
+              />
+
+            </div>
+          )}
+
+          {!heroPreview && (
+            <div className="mt-4 rounded-xl bg-gray-100 p-6 text-center text-gray-500">
+              No hero image configured.
+            </div>
+          )}
+
+        </div>
+
       </div>
 
-      <div>
-        <label className="block font-medium text-gray-700">
-          Peace & Service
-        </label>
+      {/* ABOUT */}
 
-        <input
-          className={inputClass}
-          value={form.peaceService}
-          onChange={(e)=>
-            setForm({...form,peaceService:e.target.value})
-          }
-        />
+      <div className="space-y-6 rounded-2xl border bg-white p-8 shadow-lg">
+
+        <h2 className="border-b pb-3 text-2xl font-bold text-amber-600">
+          About Section
+        </h2>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            About Title
+          </label>
+
+          <input
+            className={inputClass}
+            value={form.aboutTitle}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                aboutTitle:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            About Heading
+          </label>
+
+          <input
+            className={inputClass}
+            value={form.aboutHeading}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                aboutHeading:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            About Description
+          </label>
+
+          <textarea
+            rows={5}
+            className={inputClass}
+            value={form.about}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                about:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Mission
+          </label>
+
+          <textarea
+            rows={4}
+            className={inputClass}
+            value={form.mission}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mission:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Daily Aarti
+            </label>
+
+            <input
+              className={inputClass}
+              value={form.dailyAarti}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  dailyAarti:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Devotees
+            </label>
+
+            <input
+              className={inputClass}
+              value={form.devotees}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  devotees:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Peace & Service
+            </label>
+
+            <input
+              className={inputClass}
+              value={form.peaceService}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  peaceService:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* CONTACT */}
+
+      <div className="space-y-6 rounded-2xl border bg-white p-8 shadow-lg">
+
+        <h2 className="border-b pb-3 text-2xl font-bold text-amber-600">
+          Contact Information
+        </h2>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Temple Address
+          </label>
+
+          <textarea
+            rows={4}
+            className={inputClass}
+            placeholder="Shri Shri Ram Thakur Seva Mandir..."
+            value={form.address}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                address:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Phone
+            </label>
+
+            <input
+              type="tel"
+              className={inputClass}
+              placeholder="+91 97740 50010"
+              value={form.phone}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  phone:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Email
+            </label>
+
+            <input
+              type="email"
+              className={inputClass}
+              placeholder="info@ramthakurmandir.org"
+              value={form.email}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  email:
+                    e.target.value,
+                })
+              }
+            />
+          </div>
+
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Google Maps Embed URL
+          </label>
+
+          <input
+            type="url"
+            className={inputClass}
+            placeholder="https://www.google.com/maps?q=Banamalipur%20Agartala&output=embed"
+            value={form.mapUrl}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                mapUrl:
+                  e.target.value,
+              })
+            }
+          />
+
+          <p className="mt-2 text-sm text-gray-500">
+            Use the Google Maps embed URL
+            for the temple location.
+          </p>
+        </div>
+
+      </div>
+
+      {/* SOCIAL MEDIA */}
+
+      <div className="space-y-6 rounded-2xl border bg-white p-8 shadow-lg">
+
+        <h2 className="border-b pb-3 text-2xl font-bold text-amber-600">
+          Social Media
+        </h2>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Facebook
+          </label>
+
+          <input
+            type="url"
+            className={inputClass}
+            placeholder="https://facebook.com/..."
+            value={form.facebook}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                facebook:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            Instagram
+          </label>
+
+          <input
+            type="url"
+            className={inputClass}
+            placeholder="https://instagram.com/..."
+            value={form.instagram}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                instagram:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block font-medium text-gray-700">
+            YouTube
+          </label>
+
+          <input
+            type="url"
+            className={inputClass}
+            placeholder="https://youtube.com/..."
+            value={form.youtube}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                youtube:
+                  e.target.value,
+              })
+            }
+          />
+        </div>
+
+      </div>
+
+      {/* SAVE */}
+
+      <div className="flex justify-end">
+
+        <button
+          onClick={saveHomepage}
+          disabled={loading}
+          className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-white hover:bg-amber-600 disabled:bg-gray-400"
+        >
+          {loading
+            ? "Uploading..."
+            : "Save Homepage"}
+        </button>
+
       </div>
 
     </div>
-
-  </div>
-            {/* Contact Section */}
-  <div className="rounded-2xl border bg-white shadow-lg p-8 space-y-6">
-
-    <h2 className="text-2xl font-bold text-amber-600 border-b pb-3">
-      Contact Information
-    </h2>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        Address
-      </label>
-
-      <textarea
-        rows={3}
-        className={inputClass}
-        value={form.address}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            address: e.target.value,
-          })
-        }
-      />
-    </div>
-
-    <div className="grid md:grid-cols-2 gap-6">
-
-      <div>
-        <label className="block font-medium text-gray-700">
-          Phone
-        </label>
-
-        <input
-          className={inputClass}
-          value={form.phone}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              phone: e.target.value,
-            })
-          }
-        />
-      </div>
-
-      <div>
-        <label className="block font-medium text-gray-700">
-          Email
-        </label>
-
-        <input
-          type="email"
-          className={inputClass}
-          value={form.email}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              email: e.target.value,
-            })
-          }
-        />
-      </div>
-
-    </div>
-
-  </div>
-
-  {/* Social Media */}
-
-  <div className="rounded-2xl border bg-white shadow-lg p-8 space-y-6">
-
-    <h2 className="text-2xl font-bold text-amber-600 border-b pb-3">
-      Social Media
-    </h2>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        Facebook
-      </label>
-
-      <input
-        className={inputClass}
-        value={form.facebook}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            facebook: e.target.value,
-          })
-        }
-      />
-    </div>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        Instagram
-      </label>
-
-      <input
-        className={inputClass}
-        value={form.instagram}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            instagram: e.target.value,
-          })
-        }
-      />
-    </div>
-
-    <div>
-      <label className="block font-medium text-gray-700">
-        YouTube
-      </label>
-
-      <input
-        className={inputClass}
-        value={form.youtube}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            youtube: e.target.value,
-          })
-        }
-      />
-    </div>
-
-  </div>
-
-  <div className="flex justify-end">
-
-    <button
-      onClick={saveHomepage}
-      disabled={loading}
-      className="rounded-xl bg-amber-500 px-8 py-3 font-semibold text-white hover:bg-amber-600 disabled:bg-gray-400"
-    >
-      {loading ? "Saving..." : "Save Homepage"}
-    </button>
-
-  </div>
-
-</div>
   );
 }

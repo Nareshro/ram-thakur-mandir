@@ -1,20 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import {
   collection,
-  getDocs,
-  updateDoc,
   deleteDoc,
   doc,
+  getDocs,
+  updateDoc,
 } from "firebase/firestore";
+
 import { db } from "@/app/lib/firebase";
 
 import EditImageModal from "./EditImageModal";
 import DeleteModal from "./DeleteModal";
 import Toast from "./Toast";
-import Loader from "./Loader";
 
 interface GalleryImage {
   id: string;
@@ -25,11 +24,11 @@ interface GalleryImage {
 }
 
 interface GalleryTableProps {
-  search: string;
+  search?: string;
 }
 
 export default function GalleryTable({
-  search,
+  search = "",
 }: GalleryTableProps) {
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,39 +41,60 @@ export default function GalleryTable({
 
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
   const [toastType, setToastType] = useState<
     "success" | "error"
   >("success");
 
-  const loadGallery = async () => {
+  /* =========================
+     LOAD GALLERY
+  ========================= */
+
+  async function loadGallery() {
     try {
       setLoading(true);
 
-      const snapshot = await getDocs(collection(db, "gallery"));
+      const snapshot = await getDocs(
+        collection(db, "gallery")
+      );
 
-      const gallery = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<GalleryImage, "id">),
-      }));
+      const gallery: GalleryImage[] =
+        snapshot.docs.map((item) => ({
+          id: item.id,
+          ...(item.data() as Omit<
+            GalleryImage,
+            "id"
+          >),
+        }));
 
       setImages(gallery);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to load gallery:",
+        error
+      );
 
-      setToastMessage("Failed to load gallery");
-      setToastType("error");
-      setToastOpen(true);
+      showToast(
+        "Failed to load gallery",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
     loadGallery();
   }, []);
 
+  /* =========================
+     TOAST
+  ========================= */
+
   useEffect(() => {
-    if (!toastOpen) return;
+    if (!toastOpen) {
+      return;
+    }
 
     const timer = setTimeout(() => {
       setToastOpen(false);
@@ -83,81 +103,192 @@ export default function GalleryTable({
     return () => clearTimeout(timer);
   }, [toastOpen]);
 
-  const filteredImages = images.filter((image) => {
-    const keyword = search.toLowerCase();
+  function showToast(
+    message: string,
+    type: "success" | "error"
+  ) {
+    setToastMessage(message);
+    setToastType(type);
+    setToastOpen(true);
+  }
 
-    return (
-      image.title.toLowerCase().includes(keyword) ||
-      image.description.toLowerCase().includes(keyword)
-    );
-  });
+  /* =========================
+     SEARCH
+  ========================= */
 
-  const handleSave = async (
+  const keyword = search
+    .trim()
+    .toLowerCase();
+
+  const filteredImages =
+    images.filter((image) => {
+      if (!keyword) {
+        return true;
+      }
+
+      return (
+        (image.title || "")
+          .toLowerCase()
+          .includes(keyword) ||
+        (image.description || "")
+          .toLowerCase()
+          .includes(keyword)
+      );
+    });
+
+  /* =========================
+     EDIT
+  ========================= */
+
+  async function handleSave(
     title: string,
     description: string
-  ) => {
-    if (!selectedImage) return;
+  ) {
+    if (!selectedImage) {
+      return;
+    }
 
     try {
-      await updateDoc(doc(db, "gallery", selectedImage.id), {
-        title,
-        description,
-      });
+      await updateDoc(
+        doc(db, "gallery", selectedImage.id),
+        {
+          title: title.trim(),
+          description: description.trim(),
+        }
+      );
 
       setEditOpen(false);
+      setSelectedImage(null);
 
-      setToastMessage("Image updated successfully");
-      setToastType("success");
-      setToastOpen(true);
+      showToast(
+        "Image updated successfully",
+        "success"
+      );
 
       await loadGallery();
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to update image:",
+        error
+      );
 
-      setToastMessage("Update failed");
-      setToastType("error");
-      setToastOpen(true);
+      showToast(
+        "Update failed",
+        "error"
+      );
     }
-  };
+  }
 
-  const handleDelete = async () => {
-    if (!selectedImage) return;
+  /* =========================
+     DELETE
+  ========================= */
+
+  async function handleDelete() {
+    if (!selectedImage) {
+      return;
+    }
 
     try {
-      await deleteDoc(doc(db, "gallery", selectedImage.id));
+      await deleteDoc(
+        doc(db, "gallery", selectedImage.id)
+      );
 
       setDeleteOpen(false);
+      setSelectedImage(null);
 
-      setToastMessage("Image deleted successfully");
-      setToastType("success");
-      setToastOpen(true);
+      showToast(
+        "Image deleted successfully",
+        "success"
+      );
 
       await loadGallery();
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Failed to delete image:",
+        error
+      );
 
-      setToastMessage("Delete failed");
-      setToastType("error");
-      setToastOpen(true);
+      showToast(
+        "Delete failed",
+        "error"
+      );
     }
-  };
+  }
+
+  /* =========================
+     DATE
+  ========================= */
+
+  function formatDate(createdAt: any) {
+    if (!createdAt) {
+      return "--";
+    }
+
+    try {
+      if (
+        typeof createdAt.seconds === "number"
+      ) {
+        return new Date(
+          createdAt.seconds * 1000
+        ).toLocaleDateString();
+      }
+
+      if (
+        typeof createdAt.toDate === "function"
+      ) {
+        return createdAt
+          .toDate()
+          .toLocaleDateString();
+      }
+
+      return "--";
+    } catch {
+      return "--";
+    }
+  }
+
+  /* =========================
+     LOADING
+  ========================= */
 
   if (loading) {
-    return <Loader />;
+    return (
+      <div className="rounded-2xl bg-white p-10 text-center shadow">
+        <p className="text-gray-500">
+          Loading gallery...
+        </p>
+      </div>
+    );
   }
+
+  /* =========================
+     UI
+  ========================= */
 
   return (
     <>
       <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="w-full min-w-[900px]">
 
             <thead className="bg-stone-100 text-stone-700">
               <tr>
-                <th className="px-6 py-4 text-left">Image</th>
-                <th className="px-6 py-4 text-left">Title</th>
-                <th className="px-6 py-4 text-left">Description</th>
-                <th className="px-6 py-4 text-left">Uploaded</th>
+                <th className="px-6 py-4 text-left">
+                  Image
+                </th>
+
+                <th className="px-6 py-4 text-left">
+                  Title
+                </th>
+
+                <th className="px-6 py-4 text-left">
+                  Description
+                </th>
+
+                <th className="px-6 py-4 text-left">
+                  Uploaded
+                </th>
+
                 <th className="px-6 py-4 text-center">
                   Actions
                 </th>
@@ -165,65 +296,83 @@ export default function GalleryTable({
             </thead>
 
             <tbody>
-                 {filteredImages.length === 0 ? (
-                             
+              {filteredImages.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="py-10 text-center text-gray-700"
+                    className="py-10 text-center text-gray-500"
                   >
-                    No images found.
+                    {keyword
+                      ? "No images match your search."
+                      : "No images found."}
                   </td>
                 </tr>
               ) : (
                 filteredImages.map((image) => (
                   <tr
                     key={image.id}
-                    className="border-t hover:bg-gray-50 transition"
+                    className="border-t hover:bg-gray-50"
                   >
+
+                    {/* IMAGE */}
+
                     <td className="px-6 py-4">
-                      <div className="relative h-24 w-24 overflow-hidden rounded-xl">
-                        <Image
+                      <div className="h-24 w-24 overflow-hidden rounded-xl bg-gray-100">
+                        <img
                           src={image.imageUrl}
-                          alt={image.title}
-                          fill
-                          className="object-cover"
+                          alt={
+                            image.title ||
+                            "Gallery image"
+                          }
+                          className="h-full w-full object-cover"
                         />
                       </div>
                     </td>
 
+                    {/* TITLE */}
+
                     <td className="px-6 py-4 font-semibold text-stone-800">
-                      {image.title}
+                      {image.title || "--"}
                     </td>
 
-                    <td className="px-6 py-4 max-w-md text-gray-700">
-                      {image.description}
+                    {/* DESCRIPTION */}
+
+                    <td className="max-w-md px-6 py-4 text-gray-700">
+                      {image.description || "--"}
                     </td>
 
-                    <td className="px-6 py-4 text-gray-700">
-                      {image.createdAt?.seconds
-                        ? new Date(
-                            image.createdAt.seconds * 1000
-                          ).toLocaleDateString()
-                        : "--"}
+                    {/* DATE */}
+
+                    <td className="whitespace-nowrap px-6 py-4 text-gray-700">
+                      {formatDate(
+                        image.createdAt
+                      )}
                     </td>
+
+                    {/* ACTIONS */}
 
                     <td className="px-6 py-4">
                       <div className="flex justify-center gap-2">
 
                         <button
+                          type="button"
                           onClick={() => {
-                            setSelectedImage(image);
+                            setSelectedImage(
+                              image
+                            );
                             setEditOpen(true);
                           }}
-                          className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600"
+                          className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
                         >
                           Edit
                         </button>
 
                         <button
+                          type="button"
                           onClick={() => {
-                            setSelectedImage(image);
+                            setSelectedImage(
+                              image
+                            );
                             setDeleteOpen(true);
                           }}
                           className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
@@ -233,13 +382,17 @@ export default function GalleryTable({
 
                       </div>
                     </td>
+
                   </tr>
                 ))
               )}
             </tbody>
+
           </table>
         </div>
       </div>
+
+      {/* EDIT MODAL */}
 
       <EditImageModal
         open={editOpen}
@@ -248,7 +401,8 @@ export default function GalleryTable({
             ? {
                 id: selectedImage.id,
                 title: selectedImage.title,
-                description: selectedImage.description,
+                description:
+                  selectedImage.description,
               }
             : null
         }
@@ -259,15 +413,21 @@ export default function GalleryTable({
         onSave={handleSave}
       />
 
+      {/* DELETE MODAL */}
+
       <DeleteModal
         open={deleteOpen}
-        title={selectedImage?.title || ""}
+        title={
+          selectedImage?.title || ""
+        }
         onCancel={() => {
           setDeleteOpen(false);
           setSelectedImage(null);
         }}
         onDelete={handleDelete}
       />
+
+      {/* TOAST */}
 
       <Toast
         show={toastOpen}
@@ -277,4 +437,3 @@ export default function GalleryTable({
     </>
   );
 }
-            

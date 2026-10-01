@@ -12,17 +12,32 @@ export default function Navbar() {
 
     window.addEventListener("scroll", handleScroll);
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   const navItems = [
     { title: "Home", id: "home" },
     { title: "About", id: "about" },
+    { title: "Activities", id: "activities" },
     { title: "Guru", id: "guru" },
     { title: "Gallery", id: "gallery" },
     { title: "Events", id: "events" },
+    { title: "Donation", id: "donation" },
     { title: "Contact", id: "contact" },
   ];
+
+  function handleNavigation(id: string) {
+    const section = document.getElementById(id);
+
+    if (section) {
+      section.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }
 
   return (
     <header
@@ -32,30 +47,29 @@ export default function Navbar() {
           : "bg-black/40 backdrop-blur-md"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        {/* Empty div keeps the navigation centered */}
-        <div className="w-32"></div>
+      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-center">
 
-        {/* Navigation */}
         <nav className="hidden md:flex items-center gap-8">
           {navItems.map((item) => (
-            <a
+            <button
               key={item.id}
-              href={`#${item.id}`}
+              type="button"
+              onClick={() => handleNavigation(item.id)}
               className="text-white hover:text-amber-400 transition duration-300 font-medium"
             >
               {item.title}
-            </a>
+            </button>
           ))}
         </nav>
 
-        {/* Visit Button */}
-        <a
-          href="#contact"
-          className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-full font-semibold transition"
+        <button
+          type="button"
+          onClick={() => handleNavigation("contact")}
+          className="ml-8 bg-amber-500 hover:bg-amber-600 text-white px-6 py-3 rounded-full font-semibold transition"
         >
           Visit
-        </a>
+        </button>
+
       </div>
     </header>
   );

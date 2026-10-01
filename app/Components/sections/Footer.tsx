@@ -1,10 +1,16 @@
 "use client";
 
-import Image from "next/image";
-import { ArrowUp } from "lucide-react";
-import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
+import { ArrowUp, Mail, Phone } from "lucide-react";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaYoutube,
+} from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "@/app/lib/firebase";
 
 interface FooterData {
@@ -12,25 +18,43 @@ interface FooterData {
   address: string;
   phone: string;
   email: string;
+
+  morningHours: string;
+  eveningHours: string;
+  aartiTime: string;
+  satsangTime: string;
+
   facebook: string;
   instagram: string;
   youtube: string;
+
   copyright: string;
 }
 
 export default function Footer() {
-  const [footer, setFooter] = useState<FooterData | null>(null);
+  const [footer, setFooter] =
+    useState<FooterData | null>(null);
+
+  const [logoError, setLogoError] =
+    useState(false);
 
   useEffect(() => {
     const loadFooter = async () => {
       try {
-        const snap = await getDoc(doc(db, "footer", "main"));
+        const snap = await getDoc(
+          doc(db, "footer", "main")
+        );
 
         if (snap.exists()) {
-          setFooter(snap.data() as FooterData);
+          setFooter(
+            snap.data() as FooterData
+          );
         }
       } catch (error) {
-        console.error("Failed to load footer:", error);
+        console.error(
+          "Failed to load footer:",
+          error
+        );
       }
     };
 
@@ -45,33 +69,76 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-black text-white border-t border-white/10">
+    <footer className="relative border-t border-white/10 bg-black text-white">
 
       {/* Top Section */}
 
-      <div className="max-w-7xl mx-auto px-6 py-16">
+      <div className="mx-auto max-w-7xl px-6 py-16">
 
-        <div className="grid lg:grid-cols-4 gap-10">
+        <div className="grid gap-10 lg:grid-cols-4">
 
           {/* Temple Info */}
 
           <div>
 
-            <Image
-              src="/images/logo/logo.jpg.jpeg"
-              alt="Temple Logo"
-              width={90}
-              height={90}
-              className="rounded-full border-2 border-amber-400"
-            />
+            {!logoError ? (
+              <img
+                src="/images/logo/logo.jpg.jpeg"
+                alt="Shri Shri Ram Thakur Seva Mandir"
+                className="h-[90px] w-[90px] rounded-full border-2 border-amber-400 object-cover"
+                onError={() => {
+                  setLogoError(true);
+                }}
+              />
+            ) : (
+              <div className="flex h-[90px] w-[90px] items-center justify-center rounded-full border-2 border-amber-400 bg-stone-900 text-2xl font-bold text-amber-400">
+                RT
+              </div>
+            )}
 
             <h3 className="mt-5 text-2xl font-bold">
-              {footer?.templeName || "Shri Shri Ram Thakur Seva Mandir"}
+              {footer?.templeName ||
+                "Shri Shri Ram Thakur Seva Mandir"}
             </h3>
 
-            <p className="text-gray-400 mt-5 leading-7 whitespace-pre-line">
-              {footer?.address || "Banamalipur, Agartala, Tripura"}
+            <p className="mt-5 whitespace-pre-line leading-7 text-gray-400">
+              {footer?.address ||
+                "Banamalipur, Agartala, Tripura"}
             </p>
+
+            {/* Phone */}
+
+            <a
+              href={`tel:${
+                footer?.phone ||
+                "9774054846"
+              }`}
+              className="mt-5 flex items-center gap-3 text-gray-400 hover:text-amber-400"
+            >
+              <Phone size={18} />
+
+              <span>
+                {footer?.phone ||
+                  "9774054846"}
+              </span>
+            </a>
+
+            {/* Email */}
+
+            <a
+              href={`mailto:${
+                footer?.email ||
+                "info@ramthakurmandir.org"
+              }`}
+              className="mt-3 flex items-center gap-3 text-gray-400 hover:text-amber-400"
+            >
+              <Mail size={18} />
+
+              <span>
+                {footer?.email ||
+                  "info@ramthakurmandir.org"}
+              </span>
+            </a>
 
           </div>
 
@@ -79,29 +146,44 @@ export default function Footer() {
 
           <div>
 
-            <h3 className="text-xl font-semibold mb-5">
+            <h3 className="mb-5 text-xl font-semibold">
               Quick Links
             </h3>
 
             <div className="space-y-3">
 
-              <a href="#home" className="block hover:text-amber-400">
+              <a
+                href="#home"
+                className="block hover:text-amber-400"
+              >
                 Home
               </a>
 
-              <a href="#about" className="block hover:text-amber-400">
+              <a
+                href="#about"
+                className="block hover:text-amber-400"
+              >
                 About
               </a>
 
-              <a href="#gallery" className="block hover:text-amber-400">
+              <a
+                href="#gallery"
+                className="block hover:text-amber-400"
+              >
                 Gallery
               </a>
 
-              <a href="#events" className="block hover:text-amber-400">
+              <a
+                href="#events"
+                className="block hover:text-amber-400"
+              >
                 Events
               </a>
 
-              <a href="#contact" className="block hover:text-amber-400">
+              <a
+                href="#contact"
+                className="block hover:text-amber-400"
+              >
                 Contact
               </a>
 
@@ -113,19 +195,35 @@ export default function Footer() {
 
           <div>
 
-            <h3 className="text-xl font-semibold mb-5">
+            <h3 className="mb-5 text-xl font-semibold">
               Temple Hours
             </h3>
 
             <div className="space-y-3 text-gray-400">
 
-              <p>Morning : 5:30 AM – 12:00 PM</p>
+              <p>
+                Morning :{" "}
+                {footer?.morningHours ||
+                  "5:30 AM – 12:00 PM"}
+              </p>
 
-              <p>Evening : 4:30 PM – 8:30 PM</p>
+              <p>
+                Evening :{" "}
+                {footer?.eveningHours ||
+                  "4:30 PM – 8:30 PM"}
+              </p>
 
-              <p>Daily Aarti : 6:00 PM</p>
+              <p>
+                Daily Aarti :{" "}
+                {footer?.aartiTime ||
+                  "6:00 PM"}
+              </p>
 
-              <p>Weekly Satsang : Sunday</p>
+              <p>
+                Weekly Satsang :{" "}
+                {footer?.satsangTime ||
+                  "Sunday"}
+              </p>
 
             </div>
 
@@ -135,44 +233,50 @@ export default function Footer() {
 
           <div>
 
-            <h3 className="text-xl font-semibold mb-5">
+            <h3 className="mb-5 text-xl font-semibold">
               Follow Us
             </h3>
 
             <div className="flex gap-4">
 
-              <a
-                href={footer?.facebook || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-12 h-12 rounded-full bg-white/10 hover:bg-amber-500 transition flex items-center justify-center"
-              >
-                <FaFacebookF size={20} />
-              </a>
+              {footer?.facebook && (
+                <a
+                  href={footer.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 transition hover:bg-amber-500"
+                >
+                  <FaFacebookF size={20} />
+                </a>
+              )}
 
-              <a
-                href={footer?.instagram || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-12 h-12 rounded-full bg-white/10 hover:bg-amber-500 transition flex items-center justify-center"
-              >
-                <FaInstagram size={20} />
-              </a>
+              {footer?.instagram && (
+                <a
+                  href={footer.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 transition hover:bg-amber-500"
+                >
+                  <FaInstagram size={20} />
+                </a>
+              )}
 
-              <a
-                href={footer?.youtube || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-12 h-12 rounded-full bg-white/10 hover:bg-amber-500 transition flex items-center justify-center"
-              >
-                <FaYoutube size={20} />
-              </a>
+              {footer?.youtube && (
+                <a
+                  href={footer.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 transition hover:bg-amber-500"
+                >
+                  <FaYoutube size={20} />
+                </a>
+              )}
 
             </div>
 
-            <p className="mt-8 text-gray-400 leading-7">
-              Follow our temple for updates on festivals,
-              satsang and seva activities.
+            <p className="mt-8 leading-7 text-gray-400">
+              Follow our temple for updates on
+              festivals, satsang and seva activities.
             </p>
 
           </div>
@@ -185,14 +289,14 @@ export default function Footer() {
 
       <div className="border-t border-white/10">
 
-        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between px-6 py-6 md:flex-row">
 
-          <p className="text-gray-500 text-center">
+          <p className="text-center text-gray-500">
             {footer?.copyright ||
               "© 2026 Shri Shri Ram Thakur Seva Mandir. All Rights Reserved."}
           </p>
 
-          <p className="text-amber-400 font-semibold mt-3 md:mt-0">
+          <p className="mt-3 font-semibold text-amber-400 md:mt-0">
             Guru Kripahi Kevalam
           </p>
 
@@ -204,7 +308,8 @@ export default function Footer() {
 
       <button
         onClick={scrollToTop}
-        className="fixed bottom-8 right-8 bg-amber-500 hover:bg-amber-600 w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300"
+        aria-label="Scroll to top"
+        className="fixed bottom-8 right-8 flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 shadow-xl transition-all duration-300 hover:bg-amber-600"
       >
         <ArrowUp size={22} />
       </button>

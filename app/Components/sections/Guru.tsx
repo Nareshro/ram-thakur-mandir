@@ -1,97 +1,169 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/app/lib/firebase";
-
-interface GuruData {
-  name: string;
-  subtitle: string;
-  description1: string;
-  description2: string;
-  description3: string;
-  image: string;
-}
+import { getGurus } from "@/app/lib/guruService";
+import type { Guru as GuruType } from "@/app/lib/guruService";
 
 export default function Guru() {
-  const [guru, setGuru] = useState<GuruData | null>(null);
+  const [gurus, setGurus] = useState<GuruType[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadGuru = async () => {
+    async function loadGurus() {
       try {
-        const snap = await getDoc(doc(db, "guru", "main"));
+        const data = await getGurus();
 
-        if (snap.exists()) {
-          setGuru(snap.data() as GuruData);
-        }
+        const sortedGurus = [...data].sort(
+          (a, b) =>
+            Number(a.displayOrder) -
+            Number(b.displayOrder)
+        );
+
+        setGurus(sortedGurus);
       } catch (error) {
-        console.error("Failed to load guru:", error);
+        console.error(
+          "Failed to load Gurus:",
+          error
+        );
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
-    loadGuru();
+    loadGurus();
   }, []);
 
   return (
     <section
       id="guru"
-      className="bg-white py-24"
+      className="scroll-mt-20 bg-white py-24"
     >
       <div className="mx-auto max-w-7xl px-6">
 
-        <div className="grid items-center gap-16 lg:grid-cols-2">
+        {/* Header */}
 
-          {/* Guru Image */}
+        <div className="mb-16 text-center">
 
-          <div className="flex justify-center">
+          <p className="font-semibold tracking-[0.35em] text-amber-600">
+            OUR GURUS
+          </p>
 
-            <img
-              src={guru?.image || "/images/gallery/guruji.jpg.jpeg"}
-              alt={guru?.name || "Guru Ji"}
-              className="w-full max-w-lg rounded-3xl shadow-2xl object-cover"
-            />
+          <h2 className="mt-4 text-5xl font-bold text-stone-900">
+            Spiritual Guidance & Divine Teachings
+          </h2>
 
-          </div>
-
-          {/* Text */}
-
-          <div>
-
-            <h4 className="mb-3 font-semibold tracking-[0.35em] text-amber-600">
-              OUR GURU
-            </h4>
-
-            <h2 className="mb-6 text-5xl font-bold text-stone-900">
-              {guru?.name || "Sri Sri Ram Thakur"}
-            </h2>
-
-            <p className="mb-6 text-xl italic text-amber-700">
-              {guru?.subtitle ||
-                "Love All • Serve All • Remember the Holy Name"}
-            </p>
-
-            <p className="mb-6 text-lg leading-8 text-gray-700">
-              {guru?.description1 ||
-                "Sri Sri Ram Thakur (Ram Chandra Dev) was born on 2 February 1860 at Dingamanik, Faridpur (present-day Bangladesh)."}
-            </p>
-
-            <p className="mb-6 text-lg leading-8 text-gray-700">
-              {guru?.description2 ||
-                "Revered as Sri Sri Kaibalyanath and lovingly known as Dayal Thakur, he welcomed people from every caste, creed and religion with unconditional love, compassion and service."}
-            </p>
-
-            <p className="mb-10 text-lg leading-8 text-gray-700">
-              {guru?.description3 ||
-                "His timeless teachings continue to inspire millions of devotees through satsang, devotion, selfless service and remembrance of the Holy Name."}
-            </p>
-
-            <button className="rounded-full bg-amber-500 px-8 py-4 text-white transition hover:bg-amber-600">
-              Read More
-            </button>
-
-          </div>
+          <p className="mx-auto mt-5 max-w-3xl text-lg text-gray-600">
+            Learn about the spiritual guides and revered Gurus
+            who continue to inspire devotees through their teachings
+            and service.
+          </p>
 
         </div>
+
+        {/* Loading */}
+
+        {loading ? (
+
+          <div className="py-20 text-center text-gray-500">
+            Loading Gurus...
+          </div>
+
+        ) : gurus.length === 0 ? (
+
+          <div className="py-20 text-center text-gray-500">
+            No Guru information available.
+          </div>
+
+        ) : (
+
+          <div className="space-y-24">
+
+            {gurus.map((guru, index) => (
+
+              <div
+                key={guru.id}
+                className="grid items-center gap-12 lg:grid-cols-2"
+              >
+
+                {/* Image */}
+
+                <div
+                  className={
+                    index % 2 === 0
+                      ? "flex justify-center"
+                      : "flex justify-center lg:order-2"
+                  }
+                >
+
+                  {guru.image ? (
+
+                    <img
+                      src={guru.image}
+                      alt={guru.name}
+                      className="h-auto w-full max-w-lg rounded-3xl object-cover shadow-2xl"
+                    />
+
+                  ) : (
+
+                    <div className="flex h-96 w-full max-w-lg items-center justify-center rounded-3xl bg-gray-100 text-gray-500 shadow-2xl">
+                      No Image Available
+                    </div>
+
+                  )}
+
+                </div>
+
+                {/* Content */}
+
+                <div
+                  className={
+                    index % 2 === 0
+                      ? ""
+                      : "lg:order-1"
+                  }
+                >
+
+                  <p className="mb-3 font-semibold tracking-[0.35em] text-amber-600">
+                    OUR GURU
+                  </p>
+
+                  <h3 className="mb-5 text-4xl font-bold text-stone-900">
+                    {guru.name}
+                  </h3>
+
+                  {guru.subtitle && (
+                    <p className="mb-6 text-xl italic text-amber-700">
+                      {guru.subtitle}
+                    </p>
+                  )}
+
+                  {guru.description1 && (
+                    <p className="mb-5 text-lg leading-8 text-gray-700">
+                      {guru.description1}
+                    </p>
+                  )}
+
+                  {guru.description2 && (
+                    <p className="mb-5 text-lg leading-8 text-gray-700">
+                      {guru.description2}
+                    </p>
+                  )}
+
+                  {guru.description3 && (
+                    <p className="text-lg leading-8 text-gray-700">
+                      {guru.description3}
+                    </p>
+                  )}
+
+                </div>
+
+              </div>
+
+            ))}
+
+          </div>
+
+        )}
 
       </div>
     </section>

@@ -1,23 +1,73 @@
-import { storage } from "./firebase";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
+export async function uploadImage(
+  file: File,
+  folder: string = "gallery"
+): Promise<string> {
+  try {
+    console.log(
+      "Starting Cloudinary upload:",
+      file.name
+    );
 
-export async function uploadImage(file: File): Promise<string> {
-  const storageRef = ref(
-    storage,
-    `gallery/${Date.now()}-${file.name}`
-  );
+    const cloudName =
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
-  await uploadBytes(storageRef, file);
+    const uploadPreset =
+      process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
-  return await getDownloadURL(storageRef);
-}
+    if (!cloudName || !uploadPreset) {
+      throw new Error(
+        "Cloudinary environment variables are missing."
+      );
+    }
 
-export async function removeImage(imageUrl: string): Promise<void> {
-  const imageRef = ref(storage, imageUrl);
-  await deleteObject(imageRef);
+    const formData = new FormData();
+
+    formData.append("file", file);
+    formData.append(
+      "upload_preset",
+      uploadPreset
+    );
+
+    formData.append(
+      "folder",
+      folder
+    );
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    console.log(
+      "Cloudinary response:",
+      data
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        data.error?.message ||
+          "Cloudinary upload failed."
+      );
+    }
+
+    console.log(
+      "Image uploaded successfully:",
+      data.secure_url
+    );
+
+    return data.secure_url;
+
+  } catch (error) {
+    console.error(
+      "Cloudinary upload failed:",
+      error
+    );
+
+    throw error;
+  }
 }
